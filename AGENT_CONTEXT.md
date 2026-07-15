@@ -7,7 +7,7 @@
 
 ## 1. Project Summary
 
-A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Phase 0 complete / Phase 1 design complete — awaiting approval before implementation.**
+A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 1 (Repository scaffolding) complete — awaiting approval before Phase 2 (Terraform foundation).**
 
 Target stack: Azure · AKS · Terraform (IaC) · Helm (app deployment) · Azure DevOps YAML pipelines · Azure Monitor. Designed to be cost-effective on a personal Visual Studio subscription.
 
@@ -86,18 +86,19 @@ After approval:
 | Path | Purpose |
 |------|---------|
 | `/AGENT_CONTEXT.md` | This file — project context, decisions, assumptions (git-tracked) |
+| `/README.md` | Project overview and quick-start |
 | `/docs/phase1-design.md` | Phase 1 full solution design document |
-| `/terraform/bootstrap/` | One-time remote state backend bootstrap (run before `terraform init`) |
-| `/terraform/modules/networking/` | VNet, subnets, NSG Terraform module |
-| `/terraform/modules/identity/` | User-assigned Managed Identity + RBAC module |
-| `/terraform/modules/monitoring/` | Log Analytics Workspace module |
-| `/terraform/modules/aks/` | AKS cluster + node pool module |
-| `/terraform/environments/dev/` | Dev environment root configuration (providers, backend, main, vars, outputs) |
-| `/helm/demo-app/` | Reusable sample application Helm chart |
-| `/pipelines/` | Azure DevOps YAML pipeline files |
-| `/pipelines/templates/` | Reusable pipeline step templates |
-| `/scripts/bootstrap-state.sh` | One-time script to create Terraform remote state backend |
 | `/docs/runbook.md` | Manual setup steps and local validation guide |
+| `/terraform/bootstrap/` | One-time remote state backend bootstrap (run before `terraform init`) — **stub, content added Phase 2** |
+| `/terraform/modules/networking/` | VNet, subnets, NSG Terraform module — **stub, content added Phase 2** |
+| `/terraform/modules/identity/` | User-assigned Managed Identity + RBAC module — **stub, content added Phase 2** |
+| `/terraform/modules/monitoring/` | Log Analytics Workspace module — **stub, content added Phase 2** |
+| `/terraform/modules/aks/` | AKS cluster + node pool module — **stub, content added Phase 2** |
+| `/terraform/environments/dev/` | Dev environment root configuration — **stub, content added Phase 2** |
+| `/helm/demo-app/` | Reusable sample application Helm chart — **stub, content added Phase 5** |
+| `/pipelines/` | Azure DevOps YAML pipeline files — **stub, content added Phase 6** |
+| `/pipelines/templates/` | Reusable pipeline step templates — **stub, content added Phase 6** |
+| `/scripts/` | One-off operational scripts — **stub, bootstrap-state.sh added Phase 2** |
 
 ---
 
@@ -106,7 +107,8 @@ After approval:
 | Phase | Objective | Files Touched | Validation | Outcome | Open Follow-ups |
 |-------|-----------|--------------|-----------|---------|----------------|
 | Phase 0 | Create AGENT_CONTEXT.md, initialize repo | `AGENT_CONTEXT.md`, `.gitignore` | File exists, git-tracked | Complete | — |
-| Phase 1 (Design) | Solution design document | `docs/phase1-design.md`, `AGENT_CONTEXT.md` | Design reviewed and approved | Awaiting approval | See Open Questions |
+| Phase 1 (Design) | Solution design document | `docs/phase1-design.md`, `AGENT_CONTEXT.md` | Design reviewed, user approved | Complete | — |
+| Phase 1 (Scaffold) | Repository folder structure, README, runbook stub | `README.md`, `docs/runbook.md`, `terraform/*/.gitkeep`, `helm/*/.gitkeep`, `pipelines/*/.gitkeep`, `scripts/.gitkeep`, `AGENT_CONTEXT.md` | All folders visible; `.gitignore` excludes `*.tfvars`; git-tracked | Complete | — |
 
 ---
 
