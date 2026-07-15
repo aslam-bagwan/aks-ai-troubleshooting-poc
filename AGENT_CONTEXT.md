@@ -7,7 +7,7 @@
 
 ## 1. Project Summary
 
-A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 1 (Repository scaffolding) complete — awaiting approval before Phase 2 (Terraform foundation).**
+A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 2 (Terraform foundation) complete — awaiting approval before Phase 3 (Azure networking and AKS deployment).**
 
 Target stack: Azure · AKS · Terraform (IaC) · Helm (app deployment) · Azure DevOps YAML pipelines · Azure Monitor. Designed to be cost-effective on a personal Visual Studio subscription.
 
@@ -62,6 +62,7 @@ After approval:
 | A08 | Phase 1 | Container Insights / OMS addon deferred to Phase 4; Log Analytics Workspace created now (prepares hook, near-zero cost until data flows) | proposed |
 | A09 | Phase 1 | Networking model: kubenet (simpler, no extra VNet CIDR constraints) | proposed |
 | A10 | Phase 1 | Sample application: `nginx` (no secrets needed, cleanly validates deployment + service path) | proposed |
+| A11 | Phase 2 | **Design correction:** service_cidr changed from `10.0.100.0/16` (overlapped with VNet CIDR `10.0.0.0/16`) to `10.96.0.0/16` (Kubernetes default, no overlap). dns_service_ip updated to `10.96.0.10`. | approved |
 
 ---
 
@@ -89,16 +90,22 @@ After approval:
 | `/README.md` | Project overview and quick-start |
 | `/docs/phase1-design.md` | Phase 1 full solution design document |
 | `/docs/runbook.md` | Manual setup steps and local validation guide |
-| `/terraform/bootstrap/` | One-time remote state backend bootstrap (run before `terraform init`) — **stub, content added Phase 2** |
-| `/terraform/modules/networking/` | VNet, subnets, NSG Terraform module — **stub, content added Phase 2** |
-| `/terraform/modules/identity/` | User-assigned Managed Identity + RBAC module — **stub, content added Phase 2** |
-| `/terraform/modules/monitoring/` | Log Analytics Workspace module — **stub, content added Phase 2** |
-| `/terraform/modules/aks/` | AKS cluster + node pool module — **stub, content added Phase 2** |
-| `/terraform/environments/dev/` | Dev environment root configuration — **stub, content added Phase 2** |
-| `/helm/demo-app/` | Reusable sample application Helm chart — **stub, content added Phase 5** |
-| `/pipelines/` | Azure DevOps YAML pipeline files — **stub, content added Phase 6** |
-| `/pipelines/templates/` | Reusable pipeline step templates — **stub, content added Phase 6** |
-| `/scripts/` | One-off operational scripts — **stub, bootstrap-state.sh added Phase 2** |
+| `/scripts/bootstrap-state.sh` | One-time script (bash) to create Terraform remote state backend |
+| `/terraform/bootstrap/main.tf` | Alternative Terraform-based bootstrap (local state, creates state backend) |
+| `/terraform/bootstrap/terraform.tfvars.example` | Example vars for bootstrap Terraform |
+| `/terraform/modules/networking/` | VNet, subnet, NSG module — `variables.tf` + `outputs.tf` (stubs); `main.tf` implemented Phase 3 |
+| `/terraform/modules/identity/` | User-assigned MI + RBAC module — `variables.tf` + `outputs.tf` (stubs); `main.tf` implemented Phase 3 |
+| `/terraform/modules/monitoring/` | Log Analytics Workspace module — `variables.tf` + `outputs.tf` (stubs); `main.tf` implemented Phase 3 |
+| `/terraform/modules/aks/` | AKS cluster + node pool module — `variables.tf` + `outputs.tf` (stubs); `main.tf` implemented Phase 3 |
+| `/terraform/environments/dev/providers.tf` | AzureRM provider + version constraints |
+| `/terraform/environments/dev/backend.tf` | Remote state backend config (partial — storage account name passed at init) |
+| `/terraform/environments/dev/variables.tf` | All input variable declarations with types, descriptions, defaults |
+| `/terraform/environments/dev/outputs.tf` | Root outputs (commented stubs — wired in Phase 3) |
+| `/terraform/environments/dev/main.tf` | Root module — locals defined; module calls added Phase 3 |
+| `/terraform/environments/dev/terraform.tfvars.example` | Non-secret example values (committed) |
+| `/helm/demo-app/` | Reusable sample application Helm chart — stub, content added Phase 5 |
+| `/pipelines/` | Azure DevOps YAML pipeline files — stub, content added Phase 6 |
+| `/pipelines/templates/` | Reusable pipeline step templates — stub, content added Phase 6 |
 
 ---
 
@@ -109,6 +116,7 @@ After approval:
 | Phase 0 | Create AGENT_CONTEXT.md, initialize repo | `AGENT_CONTEXT.md`, `.gitignore` | File exists, git-tracked | Complete | — |
 | Phase 1 (Design) | Solution design document | `docs/phase1-design.md`, `AGENT_CONTEXT.md` | Design reviewed, user approved | Complete | — |
 | Phase 1 (Scaffold) | Repository folder structure, README, runbook stub | `README.md`, `docs/runbook.md`, `terraform/*/.gitkeep`, `helm/*/.gitkeep`, `pipelines/*/.gitkeep`, `scripts/.gitkeep`, `AGENT_CONTEXT.md` | All folders visible; `.gitignore` excludes `*.tfvars`; git-tracked | Complete | — |
+| Phase 2 (Terraform foundation) | Bootstrap script, provider/backend config, all module variable+output stubs | `scripts/bootstrap-state.sh`, `terraform/bootstrap/main.tf` + example, `terraform/environments/dev/{providers,backend,variables,outputs,main,tfvars.example}`, `terraform/modules/{networking,identity,monitoring,aks}/{main,variables,outputs}.tf`, `AGENT_CONTEXT.md` | `terraform validate` passes (run after bootstrap + `terraform init`); no Azure resources deployed | Complete | service_cidr design correction applied (A11) |
 
 ---
 

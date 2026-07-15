@@ -1,0 +1,33 @@
+# terraform/environments/dev/terraform.tfvars.example
+# Example variable values for the dev environment.
+# Copy to terraform.tfvars and fill in real values before running Terraform.
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# IMPORTANT: terraform.tfvars is gitignored — NEVER commit it.
+# It contains your subscription_id which must stay out of version control.
+
+# ── Required (no defaults) ─────────────────────────────────────────────────
+subscription_id = "<your-azure-subscription-id>"   # e.g. "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# ── Optional (defaults shown) ──────────────────────────────────────────────
+location    = "eastus"
+environment = "dev"
+project     = "poc"
+
+# Networking
+vnet_cidr   = "10.0.0.0/16"
+subnet_cidr = "10.0.1.0/24"
+
+# AKS — kubenet CIDRs (must not overlap with each other or with vnet_cidr)
+pod_cidr       = "10.244.0.0/16"
+service_cidr   = "10.96.0.0/16"
+dns_service_ip = "10.96.0.10"
+
+# AKS — cluster
+kubernetes_version = null           # null = latest stable GA
+node_vm_size       = "Standard_B2s" # ~$34/month; stop cluster when idle
+node_count         = 1
+
+# Monitoring
+law_retention_days = 30

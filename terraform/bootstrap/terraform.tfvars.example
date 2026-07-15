@@ -1,0 +1,10 @@
+# terraform/bootstrap/terraform.tfvars.example
+# Copy to terraform.tfvars and fill in values before running terraform apply.
+# NEVER commit terraform.tfvars (it is gitignored).
+#
+# TIP: Use scripts/bootstrap-state.sh instead — it derives the suffix
+#      automatically from your subscription ID.
+
+subscription_id        = "<your-azure-subscription-id>"
+location               = "eastus"
+storage_account_suffix = "a1b2"   # Replace with 4 chars from your subscription ID
