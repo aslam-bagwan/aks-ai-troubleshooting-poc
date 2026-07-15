@@ -1,0 +1,52 @@
+# pipelines/terraform-plan.yml
+# Trigger: Pull Requests to main that touch Terraform files.
+# Purpose: Validate infrastructure changes BEFORE merge — no apply, no approval.
+#
+# ADO prerequisites (see AGENT_CONTEXT.md assumption A07):
+#   - Service connection:  sc-azure-poc    (Contributor on subscription)
+#   - Variable group:      vg-aks-poc-dev  (contains TF_STATE_STORAGE_ACCOUNT)
+#
+# No secrets in this YAML. Authentication via service connection.
+
+trigger: none   # Not triggered by push; triggered only by PR policy below
+
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - terraform/**
+      - pipelines/terraform-*.yml
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: vg-aks-poc-dev
+
+stages:
+  - stage: Plan
+    displayName: 'Terraform Plan (PR Validation)'
+    jobs:
+      - job: TerraformPlan
+        displayName: 'Init + Plan'
+        timeoutInMinutes: 30
+        steps:
+          - checkout: self
+            displayName: 'Checkout repository'
+
+          - template: templates/terraform-steps.yml
+            parameters:
+              command: plan
+              serviceConnectionName: sc-azure-poc
+              backendStorageAccountName: $(TF_STATE_STORAGE_ACCOUNT)
+              workingDirectory: terraform/environments/dev
+              planFilePath: terraform.tfplan
+
+          # Surface plan output as a build summary
+          - script: |
+              echo "##vso[task.setvariable variable=TF_PLAN_EXIT_CODE]$?"
+              echo "==> Terraform plan completed. Review the plan output above before merging."
+            displayName: 'Plan summary'
+            condition: always()

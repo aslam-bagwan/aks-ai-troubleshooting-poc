@@ -1,0 +1,134 @@
+# pipelines/terraform-apply.yml
+# Trigger: Push to main branch that touches Terraform files.
+# Flow:  Plan → Approve (manual gate via ADO environment) → Apply → Export outputs
+#
+# ADO prerequisites (see AGENT_CONTEXT.md assumption A07):
+#   - Service connection:  sc-azure-poc    (Contributor on subscription)
+#   - Variable group:      vg-aks-poc-dev  (TF_STATE_STORAGE_ACCOUNT, RESOURCE_GROUP, etc.)
+#   - ADO Environment:     dev             (configure Pre-deployment approval check in ADO)
+#
+# No secrets in this YAML. Authentication via service connection.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - terraform/**
+
+pr: none  # Do not trigger on PRs — terraform-plan.yml handles that
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: vg-aks-poc-dev
+
+stages:
+  # ── Stage 1: Plan ──────────────────────────────────────────────────────────
+  - stage: Plan
+    displayName: '1 — Terraform Plan'
+    jobs:
+      - job: TerraformPlan
+        displayName: 'Init + Plan + Publish artifact'
+        timeoutInMinutes: 30
+        steps:
+          - checkout: self
+
+          - template: templates/terraform-steps.yml
+            parameters:
+              command: plan
+              serviceConnectionName: sc-azure-poc
+              backendStorageAccountName: $(TF_STATE_STORAGE_ACCOUNT)
+              workingDirectory: terraform/environments/dev
+              planFilePath: terraform.tfplan
+
+          # Publish plan file as pipeline artifact for the Apply stage
+          - publish: terraform/environments/dev/terraform.tfplan
+            artifact: terraform-plan
+            displayName: 'Publish terraform.tfplan artifact'
+
+  # ── Stage 2: Approve (manual gate) ────────────────────────────────────────
+  # The 'dev' ADO environment must be configured with a Pre-deployment approval
+  # check in ADO (Pipelines → Environments → dev → Approvals and checks).
+  - stage: Approve
+    displayName: '2 — Awaiting Approval'
+    dependsOn: Plan
+    jobs:
+      - deployment: WaitForApproval
+        displayName: 'Approve infrastructure change'
+        environment: dev    # Configure approval gate on this environment in ADO
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - script: |
+                    echo "==> Approval granted — proceeding to terraform apply."
+                  displayName: 'Approval confirmed'
+
+  # ── Stage 3: Apply ────────────────────────────────────────────────────────
+  - stage: Apply
+    displayName: '3 — Terraform Apply'
+    dependsOn: Approve
+    jobs:
+      - job: TerraformApply
+        displayName: 'Apply saved plan'
+        timeoutInMinutes: 45
+        steps:
+          - checkout: self
+
+          # Download the saved plan artifact to the Terraform working directory
+          - download: current
+            artifact: terraform-plan
+            displayName: 'Download terraform.tfplan artifact'
+
+          - script: |
+              cp "$(Pipeline.Workspace)/terraform-plan/terraform.tfplan" \
+                 "terraform/environments/dev/terraform.tfplan"
+            displayName: 'Copy plan file to working directory'
+
+          - template: templates/terraform-steps.yml
+            parameters:
+              command: apply
+              serviceConnectionName: sc-azure-poc
+              backendStorageAccountName: $(TF_STATE_STORAGE_ACCOUNT)
+              workingDirectory: terraform/environments/dev
+              planFilePath: terraform.tfplan
+
+  # ── Stage 4: Export outputs ────────────────────────────────────────────────
+  - stage: ExportOutputs
+    displayName: '4 — Export Terraform Outputs'
+    dependsOn: Apply
+    jobs:
+      - job: ExportOutputs
+        displayName: 'Parse and publish outputs'
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'terraform output → pipeline variables'
+            inputs:
+              azureSubscription: sc-azure-poc
+              scriptType: bash
+              scriptLocation: inlineScript
+              workingDirectory: terraform/environments/dev
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+                export TF_VAR_subscription_id="${ARM_SUBSCRIPTION_ID}"
+
+                terraform init \
+                  -backend-config="storage_account_name=$(TF_STATE_STORAGE_ACCOUNT)" \
+                  -input=false -no-color
+
+                AKS_NAME=$(terraform output -raw aks_cluster_name)
+                AKS_RG=$(terraform output -raw aks_resource_group)
+                GET_CREDS_CMD=$(terraform output -raw aks_get_credentials_cmd)
+
+                echo "##vso[task.setvariable variable=AKS_CLUSTER_NAME;isOutput=true]${AKS_NAME}"
+                echo "##vso[task.setvariable variable=AKS_RESOURCE_GROUP;isOutput=true]${AKS_RG}"
+
+                echo "==> AKS cluster:        ${AKS_NAME}"
+                echo "==> Resource group:     ${AKS_RG}"
+                echo "==> Get credentials:    ${GET_CREDS_CMD}"

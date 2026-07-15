@@ -1,0 +1,101 @@
+# pipelines/validation.yml
+# Trigger: Manual run after helm-deploy.yml completes successfully.
+# Purpose: Verify application availability and cluster health post-deployment.
+#
+# ADO prerequisites:
+#   - Service connection:  sc-azure-poc
+#   - Variable group:      vg-aks-poc-dev  (RESOURCE_GROUP, AKS_CLUSTER_NAME)
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: vg-aks-poc-dev
+
+stages:
+  - stage: Validate
+    displayName: 'Post-Deploy Validation'
+    jobs:
+      - job: ValidateDeployment
+        displayName: 'Rollout and readiness checks'
+        timeoutInMinutes: 15
+        steps:
+          - checkout: self
+
+          # ── Get AKS credentials ─────────────────────────────────────────
+          - task: AzureCLI@2
+            displayName: 'Get AKS credentials'
+            inputs:
+              azureSubscription: sc-azure-poc
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az aks get-credentials \
+                  --resource-group "$(RESOURCE_GROUP)" \
+                  --name "$(AKS_CLUSTER_NAME)" \
+                  --overwrite-existing
+
+          # ── Rollout status ──────────────────────────────────────────────
+          - script: |
+              set -euo pipefail
+              echo "==> Waiting for demo-app rollout to complete..."
+              kubectl rollout status deployment/demo-app \
+                --namespace default \
+                --timeout 5m
+            displayName: 'kubectl rollout status demo-app'
+
+          # ── Pod readiness ───────────────────────────────────────────────
+          - script: |
+              set -euo pipefail
+              echo "==> Pod status:"
+              kubectl get pods \
+                --namespace default \
+                --selector app.kubernetes.io/name=demo-app \
+                --output wide
+
+              READY=$(kubectl get deployment demo-app \
+                --namespace default \
+                --output jsonpath='{.status.readyReplicas}')
+              DESIRED=$(kubectl get deployment demo-app \
+                --namespace default \
+                --output jsonpath='{.spec.replicas}')
+
+              echo ""
+              echo "==> Ready replicas: ${READY} / ${DESIRED}"
+
+              if [ "${READY}" != "${DESIRED}" ]; then
+                echo "##vso[task.logissue type=error]Not all replicas are ready: ${READY}/${DESIRED}"
+                exit 1
+              fi
+              echo "==> All replicas are ready."
+            displayName: 'Verify pod readiness'
+
+          # ── Service discovery ───────────────────────────────────────────
+          - script: |
+              set -euo pipefail
+              echo "==> Service:"
+              kubectl get service demo-app --namespace default
+
+              echo ""
+              echo "==> To access locally:"
+              echo "    kubectl port-forward svc/demo-app 8080:80 --namespace default"
+              echo "    curl http://localhost:8080"
+            displayName: 'Service discovery check'
+
+          # ── Cluster health ──────────────────────────────────────────────
+          - script: |
+              set -euo pipefail
+              echo "==> Node status:"
+              kubectl get nodes
+
+              echo ""
+              echo "==> All pods in default namespace:"
+              kubectl get pods --namespace default
+
+              echo ""
+              echo "==> Helm release:"
+              helm status demo-app --namespace default
+            displayName: 'Cluster health summary'
+            condition: always()

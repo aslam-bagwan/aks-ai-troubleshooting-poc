@@ -1,0 +1,80 @@
+# pipelines/templates/helm-steps.yml
+# Reusable step template: get AKS credentials → helm upgrade --install.
+#
+# Authentication: AzureCLI@2 service connection fetches kubeconfig dynamically.
+#   Kubeconfig is scoped to the pipeline run and not stored anywhere.
+#
+# Usage:
+#   - template: templates/helm-steps.yml
+#     parameters:
+#       serviceConnectionName: sc-azure-poc
+#       resourceGroup: $(RESOURCE_GROUP)
+#       aksClusterName: $(AKS_CLUSTER_NAME)
+#       appSecretValue: $(APP_SECRET)   # ADO secret variable — never in YAML
+
+parameters:
+  - name: serviceConnectionName
+    type: string
+
+  - name: resourceGroup
+    type: string
+
+  - name: aksClusterName
+    type: string
+
+  - name: releaseName
+    type: string
+    default: 'demo-app'
+
+  - name: chartPath
+    type: string
+    default: 'helm/demo-app'
+
+  - name: valuesFile
+    type: string
+    default: 'helm/demo-app/values-dev.yaml'
+
+  - name: namespace
+    type: string
+    default: 'default'
+
+  - name: appSecretValue
+    type: string
+    default: 'REPLACE_ME'   # Override with ADO secret variable: $(APP_SECRET)
+
+steps:
+  # ── Get AKS kubeconfig ──────────────────────────────────────────────────────
+  - task: AzureCLI@2
+    displayName: 'Get AKS credentials'
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnectionName }}
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -euo pipefail
+        az aks get-credentials \
+          --resource-group "${{ parameters.resourceGroup }}" \
+          --name "${{ parameters.aksClusterName }}" \
+          --overwrite-existing
+        echo "==> Cluster nodes:"
+        kubectl get nodes
+
+  # ── Helm upgrade --install ──────────────────────────────────────────────────
+  - script: |
+      set -euo pipefail
+      echo "==> Helm version"
+      helm version
+
+      echo "==> Deploying chart: ${{ parameters.chartPath }}"
+      helm upgrade --install "${{ parameters.releaseName }}" "${{ parameters.chartPath }}" \
+        --namespace "${{ parameters.namespace }}" \
+        --create-namespace \
+        -f "${{ parameters.valuesFile }}" \
+        --set app.secret="${{ parameters.appSecretValue }}" \
+        --wait \
+        --timeout 5m \
+        --atomic
+
+      echo "==> Helm release status:"
+      helm status "${{ parameters.releaseName }}" --namespace "${{ parameters.namespace }}"
+    displayName: 'helm upgrade --install ${{ parameters.releaseName }}'

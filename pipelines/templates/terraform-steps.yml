@@ -1,0 +1,106 @@
+# pipelines/templates/terraform-steps.yml
+# Reusable step template: Terraform install → init → plan or apply.
+#
+# Authentication: AzureCLI@2 with addSpnToEnvironment sets ARM_* env vars
+#   which the AzureRM provider reads automatically. subscription_id is fed
+#   to Terraform via TF_VAR_subscription_id — never hardcoded.
+#
+# Usage:
+#   - template: templates/terraform-steps.yml
+#     parameters:
+#       command: plan                          # 'plan' or 'apply'
+#       serviceConnectionName: sc-azure-poc
+#       backendStorageAccountName: $(TF_STATE_STORAGE_ACCOUNT)
+
+parameters:
+  - name: command
+    type: string
+    default: 'plan'
+    values: ['plan', 'apply']
+
+  - name: workingDirectory
+    type: string
+    default: 'terraform/environments/dev'
+
+  - name: terraformVersion
+    type: string
+    default: '1.9.0'
+
+  - name: serviceConnectionName
+    type: string
+
+  - name: backendStorageAccountName
+    type: string
+
+  - name: planFilePath
+    type: string
+    default: 'terraform.tfplan'
+
+steps:
+  # ── Install Terraform ───────────────────────────────────────────────────────
+  - script: |
+      TF_VERSION="${{ parameters.terraformVersion }}"
+      echo "==> Installing Terraform ${TF_VERSION}"
+      curl -fsSL \
+        "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" \
+        -o /tmp/terraform.zip
+      unzip -o /tmp/terraform.zip -d /tmp
+      sudo mv /tmp/terraform /usr/local/bin/terraform
+      terraform version
+    displayName: 'Install Terraform ${{ parameters.terraformVersion }}'
+
+  # ── Terraform init ──────────────────────────────────────────────────────────
+  # addSpnToEnvironment: true → sets ARM_CLIENT_ID, ARM_CLIENT_SECRET,
+  #   ARM_SUBSCRIPTION_ID, ARM_TENANT_ID from the service connection.
+  - task: AzureCLI@2
+    displayName: 'terraform init'
+    inputs:
+      azureSubscription: ${{ parameters.serviceConnectionName }}
+      scriptType: bash
+      scriptLocation: inlineScript
+      workingDirectory: ${{ parameters.workingDirectory }}
+      addSpnToEnvironment: true
+      inlineScript: |
+        set -euo pipefail
+        export TF_VAR_subscription_id="${ARM_SUBSCRIPTION_ID}"
+        terraform init \
+          -backend-config="storage_account_name=${{ parameters.backendStorageAccountName }}" \
+          -input=false \
+          -no-color
+
+  # ── Terraform plan (command=plan) ───────────────────────────────────────────
+  - ${{ if eq(parameters.command, 'plan') }}:
+    - task: AzureCLI@2
+      displayName: 'terraform plan'
+      inputs:
+        azureSubscription: ${{ parameters.serviceConnectionName }}
+        scriptType: bash
+        scriptLocation: inlineScript
+        workingDirectory: ${{ parameters.workingDirectory }}
+        addSpnToEnvironment: true
+        inlineScript: |
+          set -euo pipefail
+          export TF_VAR_subscription_id="${ARM_SUBSCRIPTION_ID}"
+          terraform plan \
+            -out="${{ parameters.planFilePath }}" \
+            -input=false \
+            -no-color
+
+  # ── Terraform apply (command=apply) ────────────────────────────────────────
+  # Applies a previously saved plan file (downloaded from artifact).
+  - ${{ if eq(parameters.command, 'apply') }}:
+    - task: AzureCLI@2
+      displayName: 'terraform apply'
+      inputs:
+        azureSubscription: ${{ parameters.serviceConnectionName }}
+        scriptType: bash
+        scriptLocation: inlineScript
+        workingDirectory: ${{ parameters.workingDirectory }}
+        addSpnToEnvironment: true
+        inlineScript: |
+          set -euo pipefail
+          export TF_VAR_subscription_id="${ARM_SUBSCRIPTION_ID}"
+          terraform apply \
+            -input=false \
+            -no-color \
+            "${{ parameters.planFilePath }}"

@@ -1,0 +1,44 @@
+# pipelines/helm-deploy.yml
+# Trigger: Manual run, or triggered after successful terraform-apply.yml.
+# Purpose: Deploy the demo-app Helm chart to AKS.
+#
+# ADO prerequisites (see AGENT_CONTEXT.md assumption A07):
+#   - Service connection:  sc-azure-poc    (Contributor on subscription)
+#   - Variable group:      vg-aks-poc-dev  (RESOURCE_GROUP, AKS_CLUSTER_NAME)
+#   - Secret variable:     APP_SECRET      (ADO secret variable — NOT in YAML or variable group)
+#
+# No secrets in this YAML. APP_SECRET is a pipeline-level secret variable defined in ADO.
+
+trigger: none   # Manual trigger or chain from terraform-apply via pipeline triggers
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: vg-aks-poc-dev
+  # APP_SECRET is defined as a secret variable directly on the pipeline in ADO.
+  # It is intentionally NOT referenced here in YAML — see AGENT_CONTEXT.md A06.
+
+stages:
+  - stage: Deploy
+    displayName: 'Helm Deploy — demo-app'
+    jobs:
+      - deployment: HelmDeploy
+        displayName: 'Deploy demo-app to AKS (dev)'
+        environment: dev    # Reuses same ADO environment; configure approval if desired
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - template: templates/helm-steps.yml
+                  parameters:
+                    serviceConnectionName: sc-azure-poc
+                    resourceGroup: $(RESOURCE_GROUP)
+                    aksClusterName: $(AKS_CLUSTER_NAME)
+                    releaseName: demo-app
+                    chartPath: helm/demo-app
+                    valuesFile: helm/demo-app/values-dev.yaml
+                    namespace: default
+                    appSecretValue: $(APP_SECRET)   # ADO secret variable — masked in logs
