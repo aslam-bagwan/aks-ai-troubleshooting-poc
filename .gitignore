@@ -1,0 +1,28 @@
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+terraform.plan
+*.tfplan
+
+# Helm
+charts/
+*.tgz
+
+# Local secrets / credentials
+*.pem
+*.key
+kubeconfig
+.kube/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
