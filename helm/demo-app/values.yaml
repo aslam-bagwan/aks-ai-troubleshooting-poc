@@ -1,0 +1,71 @@
+# helm/demo-app/values.yaml
+# Default values — override per environment with values-<env>.yaml
+# Sensitive values (app.secret) must be passed via --set at deploy time, never committed.
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.27"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: "250m"
+    memory: "128Mi"
+  requests:
+    cpu: "100m"
+    memory: "64Mi"
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: demo-app.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+app:
+  config:
+    LOG_LEVEL: "info"
+    APP_ENV: "production"
+  # ── Interim secrets story (AGENT_CONTEXT.md A06) ─────────────────────────
+  # Default "REPLACE_ME" is a placeholder — never a real secret value.
+  # Pass real value via: helm upgrade --install ... --set app.secret=<value>
+  # Future phase: replace with Azure Key Vault CSI driver (SecretProviderClass).
+  secret: "REPLACE_ME"
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -7,7 +7,7 @@
 
 ## 1. Project Summary
 
-A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 4 (Monitoring integration) complete — awaiting approval before Phase 5 (Helm application deployment).**
+A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 5 (Helm application deployment) complete — awaiting approval before Phase 6 (Azure DevOps YAML pipelines).**
 
 Target stack: Azure · AKS · Terraform (IaC) · Helm (app deployment) · Azure DevOps YAML pipelines · Azure Monitor. Designed to be cost-effective on a personal Visual Studio subscription.
 
@@ -119,6 +119,7 @@ After approval:
 | Phase 2 (Terraform foundation) | Bootstrap script, provider/backend config, all module variable+output stubs | `scripts/bootstrap-state.sh`, `terraform/bootstrap/main.tf` + example, `terraform/environments/dev/{providers,backend,variables,outputs,main,tfvars.example}`, `terraform/modules/{networking,identity,monitoring,aks}/{main,variables,outputs}.tf`, `AGENT_CONTEXT.md` | `terraform validate` passes (run after bootstrap + `terraform init`); no Azure resources deployed | Complete | service_cidr design correction applied (A11) |
 | Phase 3 (AKS deployment) | All 4 module `main.tf` implementations, all `outputs.tf` wired, root `main.tf` with resource group + module calls | `terraform/modules/{networking,identity,monitoring,aks}/{main,outputs}.tf`, `terraform/environments/dev/{main,outputs}.tf`, `AGENT_CONTEXT.md` | `terraform validate` → `terraform plan` → `terraform apply`; `kubectl get nodes` shows 1 Ready node | Complete | Awaiting `terraform apply` run by user |
 | Phase 4 (Monitoring) | Container Insights enabled via `oms_agent` dynamic block; `law_workspace_id` wired from monitoring module to AKS module | `terraform/modules/aks/{main,variables}.tf`, `terraform/environments/dev/main.tf`, `AGENT_CONTEXT.md` | `terraform apply` in-place (no cluster recreate); `kubectl get pods -n kube-system \| grep omsagent` shows Running | Complete | Requires `terraform apply` to activate on live cluster |
+| Phase 5 (Helm chart) | Full `demo-app` Helm chart: Chart.yaml, values.yaml, values-dev.yaml, all 5 templates | `helm/demo-app/Chart.yaml`, `helm/demo-app/values.yaml`, `helm/demo-app/values-dev.yaml`, `helm/demo-app/templates/{_helpers.tpl,deployment.yaml,service.yaml,configmap.yaml,secret.yaml,ingress.yaml}`, `AGENT_CONTEXT.md` | `helm lint ./helm/demo-app`; `helm template demo-app ./helm/demo-app -f values-dev.yaml` renders without errors; deploy with `helm upgrade --install demo-app ./helm/demo-app -f values-dev.yaml --set app.secret=test`; `kubectl get pods` shows Running | Complete | Ingress disabled by default; secret uses placeholder per A06 |
 
 ---
 

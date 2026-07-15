@@ -1,0 +1,8 @@
+apiVersion: v2
+name: demo-app
+description: >
+  Reusable sample application chart for the AKS AI Troubleshooting POC.
+  Deploys nginx as a validation workload. Override values per environment via values-<env>.yaml.
+type: application
+version: 0.1.0
+appVersion: "1.27"

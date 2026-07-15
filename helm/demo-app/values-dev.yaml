@@ -1,0 +1,22 @@
+# helm/demo-app/values-dev.yaml
+# Dev environment overrides — applied on top of values.yaml.
+#
+# Usage:
+#   helm upgrade --install demo-app ./helm/demo-app \
+#     -f helm/demo-app/values-dev.yaml \
+#     --set app.secret=<placeholder-value>
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: "200m"
+    memory: "96Mi"
+  requests:
+    cpu: "50m"
+    memory: "32Mi"
+
+app:
+  config:
+    LOG_LEVEL: "debug"
+    APP_ENV: "development"
