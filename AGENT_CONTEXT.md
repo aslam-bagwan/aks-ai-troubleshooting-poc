@@ -7,7 +7,7 @@
 
 ## 1. Project Summary
 
-A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 2 (Terraform foundation) complete — awaiting approval before Phase 3 (Azure networking and AKS deployment).**
+A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 3 (Azure networking and AKS) complete — awaiting approval before Phase 4 (Monitoring integration).**
 
 Target stack: Azure · AKS · Terraform (IaC) · Helm (app deployment) · Azure DevOps YAML pipelines · Azure Monitor. Designed to be cost-effective on a personal Visual Studio subscription.
 
@@ -117,6 +117,7 @@ After approval:
 | Phase 1 (Design) | Solution design document | `docs/phase1-design.md`, `AGENT_CONTEXT.md` | Design reviewed, user approved | Complete | — |
 | Phase 1 (Scaffold) | Repository folder structure, README, runbook stub | `README.md`, `docs/runbook.md`, `terraform/*/.gitkeep`, `helm/*/.gitkeep`, `pipelines/*/.gitkeep`, `scripts/.gitkeep`, `AGENT_CONTEXT.md` | All folders visible; `.gitignore` excludes `*.tfvars`; git-tracked | Complete | — |
 | Phase 2 (Terraform foundation) | Bootstrap script, provider/backend config, all module variable+output stubs | `scripts/bootstrap-state.sh`, `terraform/bootstrap/main.tf` + example, `terraform/environments/dev/{providers,backend,variables,outputs,main,tfvars.example}`, `terraform/modules/{networking,identity,monitoring,aks}/{main,variables,outputs}.tf`, `AGENT_CONTEXT.md` | `terraform validate` passes (run after bootstrap + `terraform init`); no Azure resources deployed | Complete | service_cidr design correction applied (A11) |
+| Phase 3 (AKS deployment) | All 4 module `main.tf` implementations, all `outputs.tf` wired, root `main.tf` with resource group + module calls | `terraform/modules/{networking,identity,monitoring,aks}/{main,outputs}.tf`, `terraform/environments/dev/{main,outputs}.tf`, `AGENT_CONTEXT.md` | `terraform validate` → `terraform plan` → `terraform apply`; `kubectl get nodes` shows 1 Ready node | Complete | Awaiting `terraform apply` run by user |
 
 ---
 
