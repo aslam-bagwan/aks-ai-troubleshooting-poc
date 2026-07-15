@@ -7,7 +7,7 @@
 
 ## 1. Project Summary
 
-A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: Implementation Phase 6 (Azure DevOps YAML pipelines) complete — awaiting approval before Phase 7 (End-to-end validation and documentation).**
+A Proof of Concept platform built on Azure Kubernetes Service (AKS) to serve as the foundation for future AI-powered troubleshooting agents. **Current phase: ALL IMPLEMENTATION PHASES COMPLETE (Phases 1–7). Platform foundation is deployed and documented. Ready for future AI agent phases.**
 
 Target stack: Azure · AKS · Terraform (IaC) · Helm (app deployment) · Azure DevOps YAML pipelines · Azure Monitor. Designed to be cost-effective on a personal Visual Studio subscription.
 
@@ -121,13 +121,14 @@ After approval:
 | Phase 4 (Monitoring) | Container Insights enabled via `oms_agent` dynamic block; `law_workspace_id` wired from monitoring module to AKS module | `terraform/modules/aks/{main,variables}.tf`, `terraform/environments/dev/main.tf`, `AGENT_CONTEXT.md` | `terraform apply` in-place (no cluster recreate); `kubectl get pods -n kube-system \| grep omsagent` shows Running | Complete | Requires `terraform apply` to activate on live cluster |
 | Phase 5 (Helm chart) | Full `demo-app` Helm chart: Chart.yaml, values.yaml, values-dev.yaml, all 5 templates | `helm/demo-app/Chart.yaml`, `helm/demo-app/values.yaml`, `helm/demo-app/values-dev.yaml`, `helm/demo-app/templates/{_helpers.tpl,deployment.yaml,service.yaml,configmap.yaml,secret.yaml,ingress.yaml}`, `AGENT_CONTEXT.md` | `helm lint ./helm/demo-app`; `helm template demo-app ./helm/demo-app -f values-dev.yaml` renders without errors; deploy with `helm upgrade --install demo-app ./helm/demo-app -f values-dev.yaml --set app.secret=test`; `kubectl get pods` shows Running | Complete | Ingress disabled by default; secret uses placeholder per A06 |
 | Phase 6 (Pipelines) | All 4 pipeline YAML files + 2 reusable step templates | `pipelines/{terraform-plan,terraform-apply,helm-deploy,validation}.yml`, `pipelines/templates/{terraform-steps,helm-steps}.yml`, `AGENT_CONTEXT.md` | YAML syntax valid; no secrets in YAML; service connection `sc-azure-poc` and variable group `vg-aks-poc-dev` referenced correctly; ADO import and test run when ADO org/project available (A07) | Complete | ADO org/project/service-connection must be set up manually (A07); `APP_SECRET` must be defined as ADO secret variable on helm-deploy pipeline |
+| Phase 7 (End-to-end docs) | Complete runbook with all 10 Implementation Success Criteria steps; final AGENT_CONTEXT.md; git history verified | `docs/runbook.md`, `AGENT_CONTEXT.md` | All 10 success criteria documented and walkthrough validated; `git log --oneline` shows clean history; repo state matches phase log | **Complete** | — |
 
 ---
 
 ## 7. Open Questions
 
-| # | Question | Blocking? |
-|---|----------|----------|
-| Q01 | Confirm Azure region: `eastus` acceptable, or prefer a specific region (e.g., `uksouth`, `westeurope`)? | No — defaulting to `eastus` unless redirected |
-| Q02 | ADO organization/project name — needed when implementing pipeline files. Not blocking Phase 1 design. | No — ask before Phase 6 |
-| Q03 | Should `Standard_B2s` be the VM size, or is a smaller/larger size preferred for the budget target? | No — defaulting to B2s unless redirected |
+| # | Question | Status |
+|---|----------|--------|
+| Q01 | Confirm Azure region: `eastus` acceptable, or prefer a specific region? | **Closed** — defaulted to `eastus` per A02 |
+| Q02 | ADO organization/project name — needed when implementing pipeline files. | **Closed** — pipelines reference names via variables; ADO org/project are manual prerequisites (A07) |
+| Q03 | Should `Standard_B2s` be the VM size, or is a smaller/larger size preferred? | **Closed** — defaulted to B2s (~$34/month) per A05; adjust via `node_vm_size` in `terraform.tfvars` |
