@@ -67,6 +67,12 @@ variable "dns_service_ip" {
   default     = "10.96.0.10"
 }
 
+variable "law_workspace_id" {
+  description = "Log Analytics Workspace resource ID for Container Insights (Phase 4). null = disabled."
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Tags to apply to all resources in this module."
   type        = map(string)

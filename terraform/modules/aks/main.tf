@@ -36,11 +36,15 @@ resource "azurerm_kubernetes_cluster" "main" {
     dns_service_ip = var.dns_service_ip
   }
 
-  # ── Phase 4 hook: Container Insights ────────────────────────────────────
-  # Uncomment in Phase 4 and pass law_workspace_id variable:
-  # oms_agent {
-  #   log_analytics_workspace_id = var.law_workspace_id
-  # }
+  # ── Container Insights (Phase 4) ───────────────────────────────────
+  # Dynamic block: wired when law_workspace_id is set, absent when null.
+  # Non-destructive in-place update — does not recreate the cluster.
+  dynamic "oms_agent" {
+    for_each = var.law_workspace_id != null ? [1] : []
+    content {
+      log_analytics_workspace_id = var.law_workspace_id
+    }
+  }
 
   tags = var.tags
 }

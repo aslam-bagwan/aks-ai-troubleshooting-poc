@@ -9,7 +9,7 @@ locals {
     project     = "aks-ai-poc"
     environment = var.environment
     managed_by  = "terraform"
-    phase       = "phase-3"
+    phase       = "phase-4"
   }
 }
 
@@ -76,6 +76,7 @@ module "aks" {
   pod_cidr            = var.pod_cidr
   service_cidr        = var.service_cidr
   dns_service_ip      = var.dns_service_ip
+  law_workspace_id    = module.monitoring.workspace_id   # Phase 4: enables Container Insights
   tags                = local.common_tags
 
   # Ensure Network Contributor role assignment completes before AKS provisions nodes
