@@ -25,6 +25,7 @@ See [AGENT_CONTEXT.md](./AGENT_CONTEXT.md) for current phase, decisions, and ope
 ## Quick Start
 
 > Prerequisites and full setup steps are in [docs/runbook.md](./docs/runbook.md).
+> Azure infrastructure architecture and diagrams are in [docs/architecture.md](./docs/architecture.md).
 
 1. Read `AGENT_CONTEXT.md`
 2. Run `scripts/bootstrap-state.sh` (once only — creates Terraform remote state backend)
